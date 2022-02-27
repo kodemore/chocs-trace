@@ -1,11 +1,11 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import urllib3
-from httmock import urlmatch, HTTMock
-from chocs import Application, HttpResponse, HttpRequest, HttpMethod
-from chocs_middleware.trace import TraceMiddleware
 import requests
+import urllib3
+from chocs import Application, HttpResponse, HttpRequest, HttpMethod
+from httmock import urlmatch, HTTMock
 
+from chocs_middleware.trace import TraceMiddleware
 from chocs_middleware.trace.middleware import HttpStrategy
 
 
