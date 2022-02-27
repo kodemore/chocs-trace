@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "chocs-trace"
+version = "1.0.0"
+description = "Http tracing middleware for chocs library."
+authors = ["Dawid Kraczkowski <dawid.kraczkowski@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+gid = "^1.0.1"
+chocs = "^1.5.3"
+
+[tool.poetry.dev-dependencies]
+sentry-sdk = "^1.5.6"
+requests = "^2.27.1"
+httmock = "^1.4.0"
+pytest = "^7.0.1"
+pytest-cov = "^3.0.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
