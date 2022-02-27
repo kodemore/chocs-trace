@@ -1,11 +1,10 @@
 from enum import Enum
+from functools import update_wrapper
 from typing import Callable
 
 from chocs import HttpRequest, HttpResponse
-from gid import Guid
 from chocs.middleware import Middleware, MiddlewareHandler
-from functools import update_wrapper
-
+from gid import Guid
 
 IdFactory = Callable[[], str]
 
@@ -48,6 +47,7 @@ class TraceMiddleware(Middleware):
         if not self._use_http:
             try:
                 import urllib3
+
                 self._use_http = True
                 self._http_strategy = HttpStrategy.URLLIB
             except ImportError:
@@ -56,6 +56,7 @@ class TraceMiddleware(Middleware):
     def detect_sentry(self):
         try:
             import sentry_sdk
+
             self._use_sentry = True
         except ImportError:
             ...  # ignore
@@ -75,12 +76,14 @@ class TraceMiddleware(Middleware):
 
         if self._use_sentry:
             from sentry_sdk import set_tag
+
             set_tag("http.request_id", request_id)
             set_tag("http.correlation_id", correlation_id)
             set_tag("http.causation_id", causation_id)
 
         if self._use_http and self._http_strategy == HttpStrategy.REQUESTS:
             from requests import api
+
             original_request = api.request
 
             # replace requests.request function to attach extra headers
@@ -98,6 +101,7 @@ class TraceMiddleware(Middleware):
 
         if self._use_http and self._http_strategy == HttpStrategy.URLLIB:
             from urllib3.request import RequestMethods
+
             original_request = RequestMethods.request
 
             def wrapped_request(self_, method, url, fields=None, headers=None, **urlopen_kw):
