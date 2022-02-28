@@ -6,6 +6,8 @@ from chocs import HttpRequest, HttpResponse
 from chocs.middleware import Middleware, MiddlewareHandler
 from gid import Guid
 
+from chocs_middleware.trace import Logger
+
 IdFactory = Callable[[], str]
 
 
@@ -73,6 +75,10 @@ class TraceMiddleware(Middleware):
             request.headers["x-correlation-id"] = correlation_id
         if "x-causation-id" not in request.headers:
             request.headers["x-causation-id"] = causation_id
+
+        Logger.add_tag("http.request_id", request_id)
+        Logger.add_tag("http.correlation_id", request_id)
+        Logger.add_tag("http.causation_id", request_id)
 
         if self._use_sentry:
             from sentry_sdk import set_tag
