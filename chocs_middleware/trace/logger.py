@@ -4,6 +4,7 @@ import traceback
 from datetime import date, datetime, time
 from inspect import istraceback
 from typing import Dict, Optional, IO, Union, Any
+from dataclasses import is_dataclass, asdict
 
 
 class JsonEncoder(json.JSONEncoder):
@@ -27,8 +28,24 @@ class JsonFormatter(logging.Formatter):
         self.json_encoder = json_encoder
         super(JsonFormatter, self).__init__(**kwargs)
 
-    def formatMessage(self, record: logging.LogRecord) -> str:
-        return record.msg.format(**getattr(record, "_log_attributes", {}))
+    def formatMessage(self, record: logging.LogRecord) -> Any:
+        if isinstance(record.msg, str):
+            return record.msg.format(**getattr(record, "_log_attributes", {}))
+
+        if record.levelname != "DEBUG":
+            record.levelname = "ERROR"
+            return f"Dumping objects is prohibited at `{record.levelname}` log level."
+
+        if isinstance(record.msg, dict):
+            return record.msg
+
+        if is_dataclass(record.msg):
+            return asdict(record.msg)
+
+        if isinstance(record.msg, Exception):
+            return str(record.msg)
+
+        return repr(record.msg)
 
     def formatTime(self, record: logging.LogRecord, date_format: str = "") -> str:
         return datetime.utcfromtimestamp(record.created).isoformat()
@@ -46,8 +63,8 @@ class JsonFormatter(logging.Formatter):
 
     def format(self, record: logging.LogRecord) -> str:
         log = {
-            "extra": self.formatExtra(record),
             "message": self.formatMessage(record),
+            "extra": self.formatExtra(record),
             "level": record.levelname,
             "time": self.formatTime(record),
         }

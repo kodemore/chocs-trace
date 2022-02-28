@@ -74,3 +74,33 @@ def test_can_attach_tags() -> None:
         assert log["extra"]["x-request-id"] == "1"
         assert log["extra"]["x-causation-id"] == "2"
         assert log["extra"]["x-correlation-id"] == "3"
+
+
+def test_can_log_a_dict() -> None:
+    # given
+    logger_stream = StringIO()
+    logger = Logger.get("test_can_log_a_dict", log_stream=logger_stream)
+
+    # when
+    logger.debug({"test": "ok"})
+
+    # then
+    raw_logs = logger_stream.getvalue().split("\n")
+    logs = [json.loads(record) for record in raw_logs if record]
+
+    assert logs[0]["message"] == {"test": "ok"}
+
+
+def test_fail_log_a_dict_in_non_debug_level() -> None:
+    # given
+    logger_stream = StringIO()
+    logger = Logger.get("test_can_log_a_dict", log_stream=logger_stream)
+
+    # when
+    logger.info({"test": "ok"})
+
+    # then
+    raw_logs = logger_stream.getvalue().split("\n")
+    logs = [json.loads(record) for record in raw_logs if record]
+
+    assert logs[0]["level"] == "ERROR"

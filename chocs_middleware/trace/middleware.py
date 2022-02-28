@@ -6,7 +6,7 @@ from chocs import HttpRequest, HttpResponse
 from chocs.middleware import Middleware, MiddlewareHandler
 from gid import Guid
 
-from chocs_middleware.trace import Logger
+from chocs_middleware.trace.logger import Logger
 
 IdFactory = Callable[[], str]
 
