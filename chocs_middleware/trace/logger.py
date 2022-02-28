@@ -28,7 +28,7 @@ class JsonFormatter(logging.Formatter):
         super(JsonFormatter, self).__init__(**kwargs)
 
     def formatMessage(self, record: logging.LogRecord) -> str:
-        return record.msg
+        return record.msg.format(**getattr(record, "_log_attributes", {}))
 
     def formatTime(self, record: logging.LogRecord, date_format: str = "") -> str:
         return datetime.utcfromtimestamp(record.created).isoformat()
@@ -36,7 +36,7 @@ class JsonFormatter(logging.Formatter):
     def formatExtra(self, record: logging.LogRecord) -> Dict[str, str]:
         if hasattr(record, "tags"):
             return {
-                **record.tags,
+                **getattr(record, "tags"),
                 "path": f"{record.module}.{record.funcName}:{record.lineno}"
             }
 
@@ -66,11 +66,18 @@ class Logger(logging.Logger):
         setattr(record, "tags", self.tags)
         super(Logger, self).handle(record)
 
+    def _log(self, *args, **kwargs) -> None:
+        if "extra" in kwargs:
+            kwargs["extra"] = {
+                "_log_attributes": kwargs["extra"]
+            }
+        super(Logger, self)._log(*args, **kwargs)
+
     @classmethod
-    def get(cls, name: str, level: Union[str, int, None] = None, write_stream: Optional[IO[str]] = None) -> 'Logger':
+    def get(cls, name: str, level: Union[str, int, None] = None, log_stream: Optional[IO[str]] = None) -> 'Logger':
         logger = logging.getLogger(name)
 
-        log_handler = logging.StreamHandler(write_stream)
+        log_handler = logging.StreamHandler(log_stream)
         log_handler.setFormatter(JsonFormatter())
 
         logger.addHandler(log_handler)
