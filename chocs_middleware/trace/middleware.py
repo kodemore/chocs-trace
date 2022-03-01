@@ -96,6 +96,7 @@ class TraceMiddleware(Middleware):
         if "x-causation-id" not in request.headers:
             request.headers["x-causation-id"] = causation_id
 
+        Logger.set_tag("http.path", f"{request.method} {request.path}")
         Logger.set_tag("http.request_id", request_id)
         Logger.set_tag("http.correlation_id", request_id)
         Logger.set_tag("http.causation_id", request_id)
@@ -103,6 +104,7 @@ class TraceMiddleware(Middleware):
         if self._use_sentry:
             from sentry_sdk import set_tag
 
+            set_tag("http.path", f"{request.method} {request.path}")
             set_tag("http.request_id", request_id)
             set_tag("http.correlation_id", correlation_id)
             set_tag("http.causation_id", causation_id)
