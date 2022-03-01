@@ -1,6 +1,6 @@
 from enum import Enum
 from functools import update_wrapper
-from typing import Callable
+from typing import Callable, Dict
 
 from chocs import HttpRequest, HttpResponse
 from chocs.middleware import Middleware, MiddlewareHandler
@@ -21,9 +21,26 @@ class HttpStrategy(Enum):
     REQUESTS = "requests"
 
 
+_orig_request: Dict[HttpStrategy, Callable] = {}
+
+
+def _restore_orig_request() -> None:
+    if HttpStrategy.URLLIB in _orig_request:
+        from urllib3.request import RequestMethods
+
+        RequestMethods.request = _orig_request[HttpStrategy.URLLIB]  # type: ignore
+
+    if HttpStrategy.REQUESTS in _orig_request:
+        from requests import api
+
+        api.request = _orig_request[HttpStrategy.REQUESTS]  # type: ignore
+
+
 class TraceMiddleware(Middleware):
-    def __init__(self, id_factory: IdFactory = create_guid, http_strategy: HttpStrategy = HttpStrategy.AUTO) -> None:
-        self.generate_id = id_factory
+    def __init__(
+        self, id_factory: IdFactory = create_guid, id_prefix: str = "", http_strategy: HttpStrategy = HttpStrategy.AUTO
+    ) -> None:
+        self.generate_id = lambda: id_prefix + id_factory()
         self._http_strategy = http_strategy
         self._use_http = False
         if self._http_strategy != HttpStrategy.AUTO:
@@ -33,6 +50,9 @@ class TraceMiddleware(Middleware):
 
         self.detect_http_strategy()
         self.detect_sentry()
+
+        # In case middleware is instantiated multiple times we should reset the state
+        _restore_orig_request()
 
     def detect_http_strategy(self):
         if self._http_strategy != HttpStrategy.AUTO:
@@ -76,9 +96,9 @@ class TraceMiddleware(Middleware):
         if "x-causation-id" not in request.headers:
             request.headers["x-causation-id"] = causation_id
 
-        Logger.add_tag("http.request_id", request_id)
-        Logger.add_tag("http.correlation_id", request_id)
-        Logger.add_tag("http.causation_id", request_id)
+        Logger.set_tag("http.request_id", request_id)
+        Logger.set_tag("http.correlation_id", request_id)
+        Logger.set_tag("http.causation_id", request_id)
 
         if self._use_sentry:
             from sentry_sdk import set_tag
@@ -87,12 +107,21 @@ class TraceMiddleware(Middleware):
             set_tag("http.correlation_id", correlation_id)
             set_tag("http.causation_id", causation_id)
 
+        # Automatically add extra headers to requests library
         if self._use_http and self._http_strategy == HttpStrategy.REQUESTS:
             from requests import api
+            from urllib3.request import RequestMethods
 
-            original_request = api.request
+            if HttpStrategy.REQUESTS not in _orig_request:
+                _orig_request[HttpStrategy.REQUESTS] = api.request
+            # We have to store urllib request as it is used by requests
+            if HttpStrategy.URLLIB not in _orig_request:
+                _orig_request[HttpStrategy.URLLIB] = RequestMethods.request
 
-            # replace requests.request function to attach extra headers
+            # Revert to the original method in case some override
+            RequestMethods.request = _orig_request[HttpStrategy.URLLIB]  # type: ignore
+
+            # Replace requests.request function to attach extra headers
             def wrapped_request(method, url, **kwargs):
                 if "headers" not in kwargs:
                     kwargs["headers"] = {}
@@ -101,16 +130,20 @@ class TraceMiddleware(Middleware):
                 kwargs["headers"]["x-causation-id"] = request_id
                 kwargs["headers"]["x-correlation-id"] = correlation_id
 
-                return original_request(method, url, **kwargs)
+                return _orig_request[HttpStrategy.REQUESTS](method, url, **kwargs)
 
-            api.request = update_wrapper(wrapped_request, original_request)
+            # Override the request function only once
+            if api.request != wrapped_request:
+                api.request = update_wrapper(wrapped_request, _orig_request[HttpStrategy.REQUESTS])  # type: ignore
 
+        # Automatically add extra headers to urllib library
         if self._use_http and self._http_strategy == HttpStrategy.URLLIB:
             from urllib3.request import RequestMethods
 
-            original_request = RequestMethods.request
+            if _orig_request[HttpStrategy.URLLIB] is None:
+                _orig_request[HttpStrategy.URLLIB] = RequestMethods.request
 
-            def wrapped_request(self_, method, url, fields=None, headers=None, **urlopen_kw):
+            def urllib_wrapped_request(self_, method, url, fields=None, headers=None, **urlopen_kw):
                 if not headers:
                     headers = {}
 
@@ -118,8 +151,12 @@ class TraceMiddleware(Middleware):
                 headers["x-causation-id"] = request_id
                 headers["x-correlation-id"] = correlation_id
 
-                return original_request(self_, method, url, fields, headers, **urlopen_kw)
+                return _orig_request[HttpStrategy.URLLIB](self_, method, url, fields, headers, **urlopen_kw)
 
-            RequestMethods.request = update_wrapper(wrapped_request, original_request)
+            # Override the request function only once
+            if RequestMethods.request != urllib_wrapped_request:
+                RequestMethods.request = update_wrapper(urllib_wrapped_request, _orig_request[HttpStrategy.URLLIB])  # type: ignore
 
-        return next(request)
+        response = next(request)
+        response.headers.set("x-request-id", request_id)
+        return response

@@ -53,9 +53,9 @@ def test_can_attach_tags() -> None:
     logger = Logger.get("test_can_attach_tags", log_stream=logger_stream)
 
     # when
-    Logger.add_tag("x-request-id", "1")
-    Logger.add_tag("x-causation-id", "2")
-    Logger.add_tag("x-correlation-id", "3")
+    Logger.set_tag("x-request-id", "1")
+    Logger.set_tag("x-causation-id", "2")
+    Logger.set_tag("x-correlation-id", "3")
 
     logger.info("hello 1 with tags")
     logger.info("hello 2 with tags")

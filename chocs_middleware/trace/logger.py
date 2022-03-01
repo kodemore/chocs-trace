@@ -8,27 +8,28 @@ from dataclasses import is_dataclass, asdict
 
 
 class JsonEncoder(json.JSONEncoder):
-    def default(self, data: Any) -> Optional[str]:
+    def default(self, data: Any) -> Any:
         if isinstance(data, (date, datetime, time)):
             return data.isoformat()
         elif istraceback(data):
             return "".join(traceback.format_tb(data)).strip()
+        elif is_dataclass(data):
+            return asdict(data)
         elif isinstance(data, Exception):
             return str(data)
 
         try:
             return str(data)
         except Exception:
-            return super(JsonEncoder, self).default(data)
+            return repr(data)
 
 
 class JsonFormatter(logging.Formatter):
-
     def __init__(self, json_encoder: json.JSONEncoder = JsonEncoder(), **kwargs):
         self.json_encoder = json_encoder
         super(JsonFormatter, self).__init__(**kwargs)
 
-    def formatMessage(self, record: logging.LogRecord) -> Any:
+    def format_message(self, record: logging.LogRecord) -> Any:
         if isinstance(record.msg, str):
             return record.msg.format(**getattr(record, "_log_attributes", {}))
 
@@ -36,37 +37,23 @@ class JsonFormatter(logging.Formatter):
             record.levelname = "ERROR"
             return f"Dumping objects is prohibited at `{record.levelname}` log level."
 
-        if isinstance(record.msg, dict):
-            return record.msg
+        return record.msg
 
-        if is_dataclass(record.msg):
-            return asdict(record.msg)
-
-        if isinstance(record.msg, Exception):
-            return str(record.msg)
-
-        return repr(record.msg)
-
-    def formatTime(self, record: logging.LogRecord, date_format: str = "") -> str:
+    def format_time(self, record: logging.LogRecord) -> str:
         return datetime.utcfromtimestamp(record.created).isoformat()
 
-    def formatExtra(self, record: logging.LogRecord) -> Dict[str, str]:
+    def format_extra(self, record: logging.LogRecord) -> Dict[str, str]:
         if hasattr(record, "tags"):
-            return {
-                **getattr(record, "tags"),
-                "path": f"{record.module}.{record.funcName}:{record.lineno}"
-            }
+            return {**getattr(record, "tags"), "path": f"{record.module}.{record.funcName}:{record.lineno}"}
 
-        return {
-            "path": f"{record.module}.{record.funcName}:{record.lineno}"
-        }
+        return {"path": f"{record.module}.{record.funcName}:{record.lineno}"}
 
     def format(self, record: logging.LogRecord) -> str:
         log = {
-            "message": self.formatMessage(record),
-            "extra": self.formatExtra(record),
+            "message": self.format_message(record),
+            "extra": self.format_extra(record),
             "level": record.levelname,
-            "time": self.formatTime(record),
+            "time": self.format_time(record),
         }
 
         return json.dumps(log, cls=JsonEncoder, ensure_ascii=True)
@@ -76,22 +63,20 @@ class Logger(logging.Logger):
     tags: Dict[str, str] = {}
 
     @classmethod
-    def add_tag(cls, key: str, value: str) -> None:
+    def set_tag(cls, key: str, value: str) -> None:
         cls.tags[key] = value
-        
+
     def handle(self, record: logging.LogRecord) -> None:
         setattr(record, "tags", self.tags)
         super(Logger, self).handle(record)
 
     def _log(self, *args, **kwargs) -> None:
         if "extra" in kwargs:
-            kwargs["extra"] = {
-                "_log_attributes": kwargs["extra"]
-            }
+            kwargs["extra"] = {"_log_attributes": kwargs["extra"]}
         super(Logger, self)._log(*args, **kwargs)
 
     @classmethod
-    def get(cls, name: str, level: Union[str, int, None] = None, log_stream: Optional[IO[str]] = None) -> 'Logger':
+    def get(cls, name: str, level: Union[str, int, None] = None, log_stream: Optional[IO[str]] = None) -> "Logger":
         logger = logging.getLogger(name)
 
         log_handler = logging.StreamHandler(log_stream)
@@ -100,7 +85,7 @@ class Logger(logging.Logger):
         logger.addHandler(log_handler)
         logger.setLevel(level or logging.DEBUG)
 
-        return logger
+        return logger  # type: ignore
 
 
 # initialise logging manager with package's class

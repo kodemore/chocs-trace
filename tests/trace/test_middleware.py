@@ -14,20 +14,20 @@ def test_can_support_requests_lib() -> None:
     app = Application(TraceMiddleware())
     request_called = False
 
-    @urlmatch(netloc=r'(.*\.)?test\.com$')
+    @urlmatch(netloc=r"(.*\.)?test\.com$")
     def requests_support_mock(url, request):
         nonlocal request_called
         request_called = True
 
-        assert 'x-correlation-id' in request.headers
-        assert 'x-causation-id' in request.headers
-        assert 'x-request-id' in request.headers
+        assert "x-correlation-id" in request.headers
+        assert "x-causation-id" in request.headers
+        assert "x-request-id" in request.headers
 
         return "ok"
 
     @app.get("/test")
     def say_hello(req: HttpRequest) -> HttpResponse:
-        response = requests.get('http://test.com/')
+        response = requests.get("http://test.com/")
         assert response.content == b"ok"
 
         return HttpResponse("OK")
@@ -43,14 +43,13 @@ def test_can_support_requests_lib() -> None:
 def urllib_support_mock(*args, **kwargs):
 
     headers = kwargs["headers"]
-    assert 'x-correlation-id' in headers
-    assert 'x-causation-id' in headers
-    assert 'x-request-id' in headers
+    assert "x-correlation-id" in headers
+    assert "x-causation-id" in headers
+    assert "x-request-id" in headers
 
     return urllib3.HTTPResponse("ok")
 
 
-@patch('urllib3.PoolManager.urlopen', urllib_support_mock)
 def test_can_support_urllib() -> None:
     # given
     app = Application(TraceMiddleware(http_strategy=HttpStrategy.URLLIB))
@@ -58,13 +57,47 @@ def test_can_support_urllib() -> None:
     @app.get("/test")
     def say_hello(req: HttpRequest) -> HttpResponse:
         http = urllib3.PoolManager()
-        response = http.request('get', 'http://test.com/')
-
+        orig_urlopen = http.urlopen
+        http.urlopen = urllib_support_mock
+        response = http.request("get", "http://test.com/")
+        http.urlopen = orig_urlopen
         assert response.data == "ok"
+
         return HttpResponse("OK")
 
     # when
-    app(HttpRequest(HttpMethod.GET, "/test"))
+    response = app(HttpRequest(HttpMethod.GET, "/test"))
 
     # then
-    assert True
+    assert response.parsed_body == "OK"
+    assert "x-request-id" in response.headers
+
+
+def test_can_use_prefix_for_id() -> None:
+    # given
+    app = Application(TraceMiddleware(id_prefix="service-name-"))
+
+    @urlmatch(netloc=r"(.*\.)?test\.com$")
+    def requests_support_mock(url, request):
+
+        assert "x-correlation-id" in request.headers
+        assert "x-causation-id" in request.headers
+        assert "x-request-id" in request.headers
+        assert request.headers.get("x-correlation-id")[0:13] == "service-name-"
+        assert request.headers.get("x-causation-id")[0:13] == "service-name-"
+        assert request.headers.get("x-request-id")[0:13] == "service-name-"
+
+        return "ok"
+
+    @app.get("/test")
+    def say_hello(req: HttpRequest) -> HttpResponse:
+        requests.get("http://test.com/")
+        return HttpResponse("OK")
+
+    # when
+    with HTTMock(requests_support_mock):
+        response = app(HttpRequest(HttpMethod.GET, "/test"))
+
+    # then
+    assert response.headers.get("x-request-id")[0:13] == "service-name-"
+
