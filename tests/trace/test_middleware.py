@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 import requests
 import urllib3
 from chocs import Application, HttpResponse, HttpRequest, HttpMethod

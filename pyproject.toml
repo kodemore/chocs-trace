@@ -1,8 +1,18 @@
 [tool.poetry]
-name = "chocs-trace"
-version = "1.0.0"
+name = "chocs_middleware.trace"
+version = "0.1.0"
 description = "Http tracing middleware for chocs library."
 authors = ["Dawid Kraczkowski <dawid.kraczkowski@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [
+  { include = "chocs_middleware" }
+]
+homepage = "https://github.com/kodemore/chocs-trace"
+repository = "https://github.com/kodemore/chocs-trace"
+documentation = "https://github.com/kodemore/chocs-trace"
+
+keywords = ["cache", "chocs", "http", "middleware"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
