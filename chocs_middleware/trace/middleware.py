@@ -142,7 +142,7 @@ class TraceMiddleware(Middleware):
         if self._use_http and self._http_strategy == HttpStrategy.URLLIB:
             from urllib3.request import RequestMethods
 
-            if _orig_request[HttpStrategy.URLLIB] is None:
+            if HttpStrategy.URLLIB not in _orig_request or _orig_request[HttpStrategy.URLLIB] is None:
                 _orig_request[HttpStrategy.URLLIB] = RequestMethods.request
 
             def urllib_wrapped_request(self_, method, url, fields=None, headers=None, **urlopen_kw):

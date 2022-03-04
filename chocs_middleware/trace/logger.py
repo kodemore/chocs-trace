@@ -76,7 +76,7 @@ class Logger(logging.Logger):
         super(Logger, self)._log(*args, **kwargs)
 
     @classmethod
-    def get(cls, name: str, level: Union[str, int, None] = None, log_stream: Optional[IO[str]] = None) -> "Logger":
+    def get(cls, name: str, level: Union[str, int, None] = None, log_stream: Optional[IO[str]] = None, propagate: bool = False) -> "Logger":
         logger = logging.getLogger(name)
 
         log_handler = logging.StreamHandler(log_stream)
@@ -84,6 +84,7 @@ class Logger(logging.Logger):
 
         logger.addHandler(log_handler)
         logger.setLevel(level or logging.DEBUG)
+        logger.propagate = propagate
 
         return logger  # type: ignore
 
