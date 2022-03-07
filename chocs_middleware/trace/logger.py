@@ -6,9 +6,26 @@ from datetime import date, datetime, time
 from inspect import istraceback
 from typing import Dict, Optional, IO, Union, Any
 
-LOG_PROTECTED_KWARGS = ('exc_info', 'stack_info', 'stacklevel', 'extra')
-LOG_RECORD_FIELDS = ('args', 'created', 'exc_info', 'exc_text', 'filename', 'funcName', 'levelname', 'levelno',
-    'lineno', 'module', 'msecs', 'msg', 'pathname', 'process', 'processName', 'stack_info', 'thread', 'threadName'
+LOG_PROTECTED_KWARGS = ("exc_info", "stack_info", "stacklevel", "extra")
+LOG_RECORD_FIELDS = (
+    "args",
+    "created",
+    "exc_info",
+    "exc_text",
+    "filename",
+    "funcName",
+    "levelname",
+    "levelno",
+    "lineno",
+    "module",
+    "msecs",
+    "msg",
+    "pathname",
+    "process",
+    "processName",
+    "stack_info",
+    "thread",
+    "threadName",
 )
 
 
@@ -80,8 +97,8 @@ class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         message = self.get_message(record)
 
-        if hasattr(record, "_message_kwargs") and record._message_kwargs:
-            msg = message.format(**record._message_kwargs)
+        if hasattr(record, "_message_kwargs") and record._message_kwargs:  # type: ignore
+            msg = message.format(**record._message_kwargs)  # type: ignore
         else:
             msg = message
 
@@ -116,11 +133,7 @@ class Logger(logging.Logger):
         super(Logger, self).handle(record)
 
     def _log(self, *args, **kwargs) -> None:
-        new_kwargs = {
-            "extra": {
-                "_message_kwargs": {}
-            }
-        }
+        new_kwargs: Dict[str, Any] = {"extra": {"_message_kwargs": {}}}
         for key, value in kwargs.items():
             if key in LOG_PROTECTED_KWARGS:
                 new_kwargs[key] = value
@@ -132,7 +145,14 @@ class Logger(logging.Logger):
         super(Logger, self)._log(*args, **new_kwargs)
 
     @classmethod
-    def get(cls, name: str, level: Union[str, int, None] = None, log_stream: Optional[IO[str]] = None, message_format: str = "[{level}] {time} {msg}", propagate: bool = False) -> "Logger":
+    def get(
+        cls,
+        name: str,
+        level: Union[str, int, None] = None,
+        log_stream: Optional[IO[str]] = None,
+        message_format: str = "[{level}] {time} {msg}",
+        propagate: bool = False,
+    ) -> "Logger":
         logger = logging.getLogger(name)
 
         # if logger already has handlers we should clear them up

@@ -108,6 +108,7 @@ class TraceMiddleware(Middleware):
         # Populate sentry tags
         if self._use_sentry:
             from sentry_sdk import set_tag
+
             set_tag("request.method", str(request.method))
             set_tag("request.path", str(request.path))
             set_tag("request.route", str(request.route.route))
