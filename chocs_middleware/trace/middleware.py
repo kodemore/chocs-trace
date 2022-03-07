@@ -85,10 +85,12 @@ class TraceMiddleware(Middleware):
 
     def handle(self, request: HttpRequest, next: MiddlewareHandler) -> HttpResponse:
 
-        request_id = str(request.headers.get("x-request-id")) or self.generate_id()
-        correlation_id = str(request.headers.get("x-correlation-id")) or request_id
-        causation_id = str(request.headers.get("x-causation-id")) or request_id
+        # Retrieve values from headers
+        request_id = str(request.headers.get("x-request-id", self.generate_id()))
+        correlation_id = str(request.headers.get("x-correlation-id", request_id))
+        causation_id = str(request.headers.get("x-causation-id", request_id))
 
+        # Update headers when needed
         if "x-request-id" not in request.headers:
             request.headers["x-request-id"] = request_id
         if "x-correlation-id" not in request.headers:
@@ -96,18 +98,22 @@ class TraceMiddleware(Middleware):
         if "x-causation-id" not in request.headers:
             request.headers["x-causation-id"] = causation_id
 
-        Logger.set_tag("http.path", f"{request.method} {request.path}")
-        Logger.set_tag("http.request_id", request_id)
-        Logger.set_tag("http.correlation_id", request_id)
-        Logger.set_tag("http.causation_id", request_id)
+        Logger.set_tag("request.method", str(request.method))
+        Logger.set_tag("request.path", str(request.path))
+        Logger.set_tag("request.route", str(request.route.route))
+        Logger.set_tag("request.id", request_id)
+        Logger.set_tag("request.correlation_id", request_id)
+        Logger.set_tag("request.causation_id", request_id)
 
+        # Populate sentry tags
         if self._use_sentry:
             from sentry_sdk import set_tag
-
-            set_tag("http.path", f"{request.method} {request.path}")
-            set_tag("http.request_id", request_id)
-            set_tag("http.correlation_id", correlation_id)
-            set_tag("http.causation_id", causation_id)
+            set_tag("request.method", str(request.method))
+            set_tag("request.path", str(request.path))
+            set_tag("request.route", str(request.route.route))
+            set_tag("request.id", request_id)
+            set_tag("request.correlation_id", request_id)
+            set_tag("request.causation_id", request_id)
 
         # Automatically add extra headers to requests library
         if self._use_http and self._http_strategy == HttpStrategy.REQUESTS:
@@ -161,4 +167,5 @@ class TraceMiddleware(Middleware):
 
         response = next(request)
         response.headers.set("x-request-id", request_id)
+
         return response

@@ -2,6 +2,29 @@ import json
 from io import StringIO
 
 from chocs_middleware.trace import Logger
+from chocs_middleware.trace.logger import _LogArgsBucket
+
+
+def test_can_use_format_attribute() -> None:
+    # given
+    items = {
+        "tags": {
+            "tag_a": "a",
+            "tag_b": "b",
+            "multi_tag": {
+                "tag_a_a": "a_a",
+                "tag_b_b": "b_b",
+            }
+        },
+        "value_a": "1",
+        "value_b": "2"
+    }
+
+    attrs = _LogArgsBucket(items)
+
+    # when
+    assert "{tags.tag_a}".format_map(attrs) == "a"
+    assert "{value_a}".format_map(attrs) == "1"
 
 
 def test_can_instantiate_new_logger() -> None:
@@ -19,17 +42,20 @@ def test_can_log_message() -> None:
     logger = Logger.get("test_log", log_stream=logger_stream)
 
     # when
-    logger.info("test log_message")
+    logger.info("test log")
 
     # then
-    raw_logs = logger_stream.getvalue().split("\n")
-    logs = [json.loads(record) for record in raw_logs if record]
+    raw_logs = logger_stream.getvalue().split("\n")[:-1]
 
-    assert len(logs) == 1
-    assert "level" in logs[0]
-    assert "time" in logs[0]
-    assert "extra" in logs[0]
-    assert "message" in logs[0]
+    for record in raw_logs:
+        json_payload = record[record.find('\t'):]
+        log = json.loads(json_payload)
+
+        assert "value" in log
+        assert "args" in log
+        assert "level" in log
+        assert "time" in log
+        assert "tags" in log
 
 
 def test_can_interpolate_message() -> None:
@@ -38,42 +64,56 @@ def test_can_interpolate_message() -> None:
     logger = Logger.get("test_interpolate_message", log_stream=logger_stream)
 
     # when
-    logger.info("hello {name}", extra={"name": "test"})
+    logger.info("hello {name}", name="test")
+    logger.info("start transaction")
+    logger.info("end transaction")
 
     # then
-    raw_logs = logger_stream.getvalue().split("\n")
-    logs = [json.loads(record) for record in raw_logs if record]
+    raw_logs = logger_stream.getvalue().split("\n")[:-1]
+    record = raw_logs[0]
+    json_payload = record[record.find('\t'):]
+    log = json.loads(json_payload)
 
-    assert logs[0]["message"] == "hello test"
+    assert log["value"] == "hello {name}"
+    assert log["args"] == {"name": "test"}
+    assert log["level"] == "INFO"
+    assert "time" in log
+    assert "tags" in log
+    assert "source_path" in log["tags"]
 
 
 def test_can_attach_tags() -> None:
     # given
     logger_stream = StringIO()
-    logger = Logger.get("test_can_attach_tags", log_stream=logger_stream)
+    logger = Logger.get(
+        "test_can_attach_tags",
+        log_stream=logger_stream,
+        message_format="[{level}] {tags.x-request-id} - {msg}")
 
     # when
-    Logger.set_tag("x-request-id", "1")
-    Logger.set_tag("x-causation-id", "2")
-    Logger.set_tag("x-correlation-id", "3")
+    Logger.set_tag("x-request-id", "req-1")
+    Logger.set_tag("x-causation-id", "caus-2")
+    Logger.set_tag("x-correlation-id", "correl-3")
 
-    logger.info("hello 1 with tags")
-    logger.info("hello 2 with tags")
-    logger.info("hello 3 with tags")
+    logger.info("{hello} with tags", hello="hello 1")
+    logger.info("{hello} with tags", hello="hello 2")
+    logger.info("{hello} with tags", hello="hello 3")
 
     # then
-    raw_logs = logger_stream.getvalue().split("\n")
-    logs = [json.loads(record) for record in raw_logs if record]
+    raw_logs = logger_stream.getvalue().split("\n")[:-1]
 
-    for log in logs:
-        assert "extra" in log
-        assert "x-request-id" in log["extra"]
-        assert "x-causation-id" in log["extra"]
-        assert "x-correlation-id" in log["extra"]
+    for record in raw_logs:
+        json_payload = record[record.find('\t'):]
+        log = json.loads(json_payload)
 
-        assert log["extra"]["x-request-id"] == "1"
-        assert log["extra"]["x-causation-id"] == "2"
-        assert log["extra"]["x-correlation-id"] == "3"
+        assert "tags" in log
+        assert "x-request-id" in log["tags"]
+        assert "x-causation-id" in log["tags"]
+        assert "x-correlation-id" in log["tags"]
+
+        assert log["tags"]["x-request-id"] == "req-1"
+        assert log["tags"]["x-causation-id"] == "caus-2"
+        assert log["tags"]["x-correlation-id"] == "correl-3"
 
 
 def test_can_log_a_dict() -> None:
@@ -85,10 +125,12 @@ def test_can_log_a_dict() -> None:
     logger.debug({"test": "ok"})
 
     # then
-    raw_logs = logger_stream.getvalue().split("\n")
-    logs = [json.loads(record) for record in raw_logs if record]
+    raw_logs = logger_stream.getvalue().split("\n")[:-1]
+    record = raw_logs[0]
+    json_payload = record[record.find('\t'):]
+    log = json.loads(json_payload)
 
-    assert logs[0]["message"] == {"test": "ok"}
+    assert log["value"] == {"test": "ok"}
 
 
 def test_fail_log_a_dict_in_non_debug_level() -> None:
@@ -100,7 +142,10 @@ def test_fail_log_a_dict_in_non_debug_level() -> None:
     logger.info({"test": "ok"})
 
     # then
-    raw_logs = logger_stream.getvalue().split("\n")
-    logs = [json.loads(record) for record in raw_logs if record]
+    raw_logs = logger_stream.getvalue().split("\n")[:-1]
+    record = raw_logs[0]
+    json_payload = record[record.find('\t'):]
+    log = json.loads(json_payload)
 
-    assert logs[0]["level"] == "ERROR"
+    assert log["level"] == "ERROR"
+    assert log["value"] != {"test": "ok"}

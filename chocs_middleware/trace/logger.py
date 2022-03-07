@@ -1,10 +1,35 @@
 import json
 import logging
 import traceback
+from dataclasses import is_dataclass, asdict
 from datetime import date, datetime, time
 from inspect import istraceback
 from typing import Dict, Optional, IO, Union, Any
-from dataclasses import is_dataclass, asdict
+
+LOG_PROTECTED_KWARGS = ('exc_info', 'stack_info', 'stacklevel', 'extra')
+LOG_RECORD_FIELDS = ('args', 'created', 'exc_info', 'exc_text', 'filename', 'funcName', 'levelname', 'levelno',
+    'lineno', 'module', 'msecs', 'msg', 'pathname', 'process', 'processName', 'stack_info', 'thread', 'threadName'
+)
+
+
+class _LogArgsBucket:
+    def __init__(self, args: Dict[str, Any]) -> None:
+        self._args = args
+
+    def __getitem__(self, item: str) -> Any:
+        return self.__getattr__(item)
+
+    def __getattr__(self, item: str) -> Any:
+        if item in self._args:
+            if isinstance(self._args[item], dict):
+                return _LogArgsBucket(self._args[item])
+
+            return str(self._args[item])
+        else:
+            return ""
+
+    def __str__(self) -> str:
+        return str(self._args)
 
 
 class JsonEncoder(json.JSONEncoder):
@@ -25,38 +50,58 @@ class JsonEncoder(json.JSONEncoder):
 
 
 class JsonFormatter(logging.Formatter):
-    def __init__(self, json_encoder: json.JSONEncoder = JsonEncoder(), **kwargs):
+    def __init__(self, json_encoder: json.JSONEncoder = JsonEncoder(), message_format: str = "[{level}] {time} {msg}"):
         self.json_encoder = json_encoder
-        super(JsonFormatter, self).__init__(**kwargs)
+        self.message_format = message_format
+        super(JsonFormatter, self).__init__()
 
-    def format_message(self, record: logging.LogRecord) -> Any:
+    @staticmethod
+    def get_message(record: logging.LogRecord) -> Any:
         if isinstance(record.msg, str):
-            return record.msg.format(**getattr(record, "_log_attributes", {}))
+            return record.msg
 
         if record.levelname != "DEBUG":
+            msg = f"Dumping objects is prohibited at `{record.levelname}` log level."
             record.levelname = "ERROR"
-            return f"Dumping objects is prohibited at `{record.levelname}` log level."
+            return msg
 
         return record.msg
 
-    def format_time(self, record: logging.LogRecord) -> str:
-        return datetime.utcfromtimestamp(record.created).isoformat()
-
-    def format_extra(self, record: logging.LogRecord) -> Dict[str, str]:
+    @staticmethod
+    def format_tags(record: logging.LogRecord) -> Dict[str, str]:
         if hasattr(record, "tags"):
-            return {**getattr(record, "tags"), "path": f"{record.module}.{record.funcName}:{record.lineno}"}
+            return {**getattr(record, "tags"), "source_path": f"{record.module}.{record.funcName}:{record.lineno}"}
 
         return {"path": f"{record.module}.{record.funcName}:{record.lineno}"}
 
+    def format_message(self, log_entry: dict) -> str:
+        return self.message_format.format_map(_LogArgsBucket(log_entry))
+
     def format(self, record: logging.LogRecord) -> str:
-        log = {
-            "message": self.format_message(record),
-            "extra": self.format_extra(record),
+        message = self.get_message(record)
+
+        if hasattr(record, "_message_kwargs") and record._message_kwargs:
+            msg = message.format(**record._message_kwargs)
+        else:
+            msg = message
+
+        payload = {
+            "value": message,
+            "args": getattr(record, "_message_kwargs", {}),
             "level": record.levelname,
-            "time": self.format_time(record),
+            "time": datetime.utcfromtimestamp(record.created).isoformat(),
+            "tags": self.format_tags(record),
         }
 
-        return json.dumps(log, cls=JsonEncoder, ensure_ascii=True)
+        log = {}
+        for key in LOG_RECORD_FIELDS:
+            if not hasattr(record, key):
+                continue
+            log[key] = getattr(record, key)
+
+        log = {**log, **payload, **{"msg": msg}}
+
+        return self.format_message(log) + "\t" + json.dumps(payload, cls=JsonEncoder, ensure_ascii=True)
 
 
 class Logger(logging.Logger):
@@ -71,18 +116,33 @@ class Logger(logging.Logger):
         super(Logger, self).handle(record)
 
     def _log(self, *args, **kwargs) -> None:
-        if "extra" in kwargs:
-            kwargs["extra"] = {"_log_attributes": kwargs["extra"]}
-        super(Logger, self)._log(*args, **kwargs)
+        new_kwargs = {
+            "extra": {
+                "_message_kwargs": {}
+            }
+        }
+        for key, value in kwargs.items():
+            if key in LOG_PROTECTED_KWARGS:
+                new_kwargs[key] = value
+                if key == "extra":
+                    new_kwargs["extra"]["_message_kwargs"] = {}
+                continue
+            new_kwargs["extra"]["_message_kwargs"][key] = value
+
+        super(Logger, self)._log(*args, **new_kwargs)
 
     @classmethod
-    def get(cls, name: str, level: Union[str, int, None] = None, log_stream: Optional[IO[str]] = None, propagate: bool = False) -> "Logger":
+    def get(cls, name: str, level: Union[str, int, None] = None, log_stream: Optional[IO[str]] = None, message_format: str = "[{level}] {time} {msg}", propagate: bool = False) -> "Logger":
         logger = logging.getLogger(name)
 
-        log_handler = logging.StreamHandler(log_stream)
-        log_handler.setFormatter(JsonFormatter())
+        # if logger already has handlers we should clear them up
+        if len(logger.handlers) > 1:
+            logger.handlers.clear()
 
-        logger.addHandler(log_handler)
+        json_handler = logging.StreamHandler(log_stream)
+        json_handler.setFormatter(JsonFormatter(message_format=message_format))
+        logger.addHandler(json_handler)
+
         logger.setLevel(level or logging.DEBUG)
         logger.propagate = propagate
 
