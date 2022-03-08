@@ -4,7 +4,7 @@ import traceback
 from dataclasses import is_dataclass, asdict
 from datetime import date, datetime, time
 from inspect import istraceback
-from typing import Dict, Optional, IO, Union, Any
+from typing import Dict, Optional, IO, Union, Any, List
 
 LOG_PROTECTED_KWARGS = ("exc_info", "stack_info", "stacklevel", "extra")
 LOG_RECORD_FIELDS = (
@@ -122,14 +122,15 @@ class JsonFormatter(logging.Formatter):
 
 
 class Logger(logging.Logger):
-    tags: Dict[str, str] = {}
+    _tags: Dict[str, str] = {}
+    _cache: Dict[str, 'Logger'] = {}
 
     @classmethod
-    def set_tag(cls, key: str, value: str) -> None:
-        cls.tags[key] = value
+    def set_tag(cls, key: str, value: Union[str, List[str], Dict[str, Union[str, List[str], dict]]]) -> None:
+        cls._tags[key] = value
 
     def handle(self, record: logging.LogRecord) -> None:
-        setattr(record, "tags", self.tags)
+        setattr(record, "tags", self._tags)
         super(Logger, self).handle(record)
 
     def _log(self, *args, **kwargs) -> None:
@@ -153,10 +154,13 @@ class Logger(logging.Logger):
         message_format: str = "[{level}] {time} {msg}",
         propagate: bool = False,
     ) -> "Logger":
+        if name in cls._cache:
+            return cls._cache[name]
+
         logger = logging.getLogger(name)
 
-        # if logger already has handlers we should clear them up
-        if len(logger.handlers) > 1:
+        # Something went wrong with logger's lock mechanism, we should clear handlers to prevent double logs.
+        if len(logger.handlers) >= 1:
             logger.handlers.clear()
 
         json_handler = logging.StreamHandler(log_stream)
@@ -165,6 +169,7 @@ class Logger(logging.Logger):
 
         logger.setLevel(level or logging.DEBUG)
         logger.propagate = propagate
+        cls._cache[name] = logger  # type: ignore
 
         return logger  # type: ignore
 

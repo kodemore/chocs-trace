@@ -54,6 +54,48 @@ def say_hello(req: HttpRequest) -> HttpResponse:
 
 ## Using logger
 
+```python
+from chocs import Application, HttpRequest, HttpResponse
+from chocs_middleware.trace import TraceMiddleware, Logger
+
+app = Application(TraceMiddleware())
+
+
+@app.get("/hello")
+def say_hello(req: HttpRequest) -> HttpResponse:
+    logger = Logger.get("logger_name")
+    logger.info("Hello {name}!", name="Bob")  # will output to log stream Hello Bob!
+    return HttpResponse("Hello!")
+```
+
 ### Formatting message
 
-#### Available properties
+```python
+from chocs import Application, HttpRequest, HttpResponse
+from chocs_middleware.trace import TraceMiddleware, Logger
+
+app = Application(TraceMiddleware())
+
+
+@app.get("/hello")
+def say_hello(req: HttpRequest) -> HttpResponse:
+    logger = Logger.get("logger_name", message_format="[{level}] {tags.request.x-correlation-id} {msg}")
+    logger.info("Hello {name}!", name="Bob")  # will output to log stream Hello Bob!
+    return HttpResponse("Hello!")
+```
+
+#### Available formatting options
+
+| Name | Example value | Description |
+|---|:---:|---|
+| `{level}` | DEBUG | Log level name |
+| `{msg}` | Example message | Log message after interpolation |
+| `{value}` | Example {name} | Log message before interpolation |
+| `{time}` | 2022-03-07T20:06:23.453866 | Time of the logged message |
+| `{filename}` | example.py | Name of the python file where message was log |
+| `{funcName}` | example_function | Name of the function where message was log |
+| `{module}` | example_module | Name of the module where message was log |
+| `{pathname}` | example/path | Path name of the file where message was log |
+| `{tags.*}` | some value | Custom tag value set by calling `Logger.set_tag` function |
+
+

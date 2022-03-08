@@ -136,7 +136,7 @@ def test_can_log_a_dict() -> None:
 def test_fail_log_a_dict_in_non_debug_level() -> None:
     # given
     logger_stream = StringIO()
-    logger = Logger.get("test_can_log_a_dict", log_stream=logger_stream)
+    logger = Logger.get("test_cannot_log_a_dict", log_stream=logger_stream)
 
     # when
     logger.info({"test": "ok"})
@@ -149,3 +149,27 @@ def test_fail_log_a_dict_in_non_debug_level() -> None:
 
     assert log["level"] == "ERROR"
     assert log["value"] != {"test": "ok"}
+
+
+def test_can_retrieve_same_logger_multiple_times() -> None:
+    # given
+    logger_stream = StringIO()
+    loggers = [
+        Logger.get("test_same_logger", log_stream=logger_stream),
+        Logger.get("test_same_logger", log_stream=logger_stream),
+        Logger.get("test_same_logger", log_stream=logger_stream),
+        Logger.get("test_same_logger", log_stream=logger_stream),
+        Logger.get("test_same_logger", log_stream=logger_stream),
+    ]
+
+    # when
+    for logger in loggers:
+        logger.info("test")
+
+    # then
+    raw_logs = logger_stream.getvalue().split("\n")[:-1]
+    assert len(raw_logs) == 5
+    for logger in loggers:
+        assert isinstance(logger, Logger)
+        assert logger == loggers[0]
+
