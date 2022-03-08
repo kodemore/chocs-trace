@@ -14,6 +14,13 @@ poetry add chocs-middleware.trace
 pip install chocs-middleware.trace
 ```
 
+# Features
+
+- Automatic generation and propagation of tracing headers (x-request-id, x-correlation-id, x-causation-id)
+- Sentry integration
+- More intuitive log formatting options
+- Structured logging
+
 # Usage
 
 ## Support tracing in your responses

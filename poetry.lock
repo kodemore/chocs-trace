@@ -76,7 +76,7 @@ unicode_backport = ["unicodedata2"]
 
 [[package]]
 name = "chocs"
-version = "1.5.3"
+version = "1.6.0"
 description = "Lightweight and powerful WSGI/AWS lambda framework for rapid building rest applications."
 category = "main"
 optional = false
@@ -408,7 +408,7 @@ types-urllib3 = "<1.27"
 
 [[package]]
 name = "types-urllib3"
-version = "1.26.9"
+version = "1.26.10"
 description = "Typing stubs for urllib3"
 category = "dev"
 optional = false
@@ -495,8 +495,8 @@ charset-normalizer = [
     {file = "charset_normalizer-2.0.12-py3-none-any.whl", hash = "sha256:6881edbebdb17b39b4eaaa821b438bf6eddffb4468cf344f09f89def34a8b1df"},
 ]
 chocs = [
-    {file = "chocs-1.5.3-py3-none-any.whl", hash = "sha256:4938a3989fb00a8830fc204465096a7f15a818ee9f2fd33aac5bafe0fcd0c0b7"},
-    {file = "chocs-1.5.3.tar.gz", hash = "sha256:1d883eff9b0db591160cb1822172a086029ace7ea28fd0b401c6b92ee3e512a6"},
+    {file = "chocs-1.6.0-py3-none-any.whl", hash = "sha256:7ad9a35ddcc200a3cad5c4493e7b25cccb83a133f5a52ec1045030e7264d8e77"},
+    {file = "chocs-1.6.0.tar.gz", hash = "sha256:d62ab3e5fea1220f1ae190ccf08bab0da9b4eb8e15b6fed217b1bf19aa1e28d8"},
 ]
 click = [
     {file = "click-8.0.4-py3-none-any.whl", hash = "sha256:6a7a62563bbfabfda3a38f3023a1db4a35978c0abd76f6c9605ecd6554d6d9b1"},
@@ -730,8 +730,8 @@ types-requests = [
     {file = "types_requests-2.27.11-py3-none-any.whl", hash = "sha256:506279bad570c7b4b19ac1f22e50146538befbe0c133b2cea66a9b04a533a859"},
 ]
 types-urllib3 = [
-    {file = "types-urllib3-1.26.9.tar.gz", hash = "sha256:abd2d4857837482b1834b4817f0587678dcc531dbc9abe4cde4da28cef3f522c"},
-    {file = "types_urllib3-1.26.9-py3-none-any.whl", hash = "sha256:4a54f6274ab1c80968115634a55fb9341a699492b95e32104a7c513db9fe02e9"},
+    {file = "types-urllib3-1.26.10.tar.gz", hash = "sha256:a26898f530e6c3f43f25b907f2b884486868ffd56a9faa94cbf9b3eb6e165d6a"},
+    {file = "types_urllib3-1.26.10-py3-none-any.whl", hash = "sha256:d755278d5ecd7a7a6479a190e54230f241f1a99c19b81518b756b19dc69e518c"},
 ]
 typing-extensions = [
     {file = "typing_extensions-4.1.1-py3-none-any.whl", hash = "sha256:21c85e0fe4b9a155d0799430b0ad741cdce7e359660ccbd8b530613e8df88ce2"},
