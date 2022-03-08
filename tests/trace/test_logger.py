@@ -51,10 +51,10 @@ def test_can_log_message() -> None:
         json_payload = record[record.find('\t'):]
         log = json.loads(json_payload)
 
-        assert "value" in log
+        assert "log_message" in log
         assert "args" in log
         assert "level" in log
-        assert "time" in log
+        assert "timestamp" in log
         assert "tags" in log
 
 
@@ -74,10 +74,10 @@ def test_can_interpolate_message() -> None:
     json_payload = record[record.find('\t'):]
     log = json.loads(json_payload)
 
-    assert log["value"] == "hello {name}"
+    assert log["log_message"] == "hello {name}"
     assert log["args"] == {"name": "test"}
     assert log["level"] == "INFO"
-    assert "time" in log
+    assert "timestamp" in log
     assert "tags" in log
     assert "source_path" in log["tags"]
 
@@ -130,7 +130,7 @@ def test_can_log_a_dict() -> None:
     json_payload = record[record.find('\t'):]
     log = json.loads(json_payload)
 
-    assert log["value"] == {"test": "ok"}
+    assert log["log_message"] == {"test": "ok"}
 
 
 def test_fail_log_a_dict_in_non_debug_level() -> None:
@@ -148,7 +148,7 @@ def test_fail_log_a_dict_in_non_debug_level() -> None:
     log = json.loads(json_payload)
 
     assert log["level"] == "ERROR"
-    assert log["value"] != {"test": "ok"}
+    assert log["log_message"] != {"test": "ok"}
 
 
 def test_can_retrieve_same_logger_multiple_times() -> None:
