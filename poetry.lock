@@ -76,7 +76,7 @@ unicode_backport = ["unicodedata2"]
 
 [[package]]
 name = "chocs"
-version = "1.6.0"
+version = "1.6.1"
 description = "Lightweight and powerful WSGI/AWS lambda framework for rapid building rest applications."
 category = "main"
 optional = false
@@ -495,8 +495,8 @@ charset-normalizer = [
     {file = "charset_normalizer-2.0.12-py3-none-any.whl", hash = "sha256:6881edbebdb17b39b4eaaa821b438bf6eddffb4468cf344f09f89def34a8b1df"},
 ]
 chocs = [
-    {file = "chocs-1.6.0-py3-none-any.whl", hash = "sha256:7ad9a35ddcc200a3cad5c4493e7b25cccb83a133f5a52ec1045030e7264d8e77"},
-    {file = "chocs-1.6.0.tar.gz", hash = "sha256:d62ab3e5fea1220f1ae190ccf08bab0da9b4eb8e15b6fed217b1bf19aa1e28d8"},
+    {file = "chocs-1.6.1-py3-none-any.whl", hash = "sha256:bf2bb843ce718d1a9ad8330f22da9fd9b92042b77059cbf5eded5de2206f445a"},
+    {file = "chocs-1.6.1.tar.gz", hash = "sha256:c5e9789747a508c1bcbe9dacde7c555d3147633e05b9621c1ca3f1677d5e6eca"},
 ]
 click = [
     {file = "click-8.0.4-py3-none-any.whl", hash = "sha256:6a7a62563bbfabfda3a38f3023a1db4a35978c0abd76f6c9605ecd6554d6d9b1"},
