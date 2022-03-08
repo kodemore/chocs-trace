@@ -67,7 +67,7 @@ class JsonEncoder(json.JSONEncoder):
 
 
 class JsonFormatter(logging.Formatter):
-    def __init__(self, json_encoder: json.JSONEncoder = JsonEncoder(), message_format: str = "[{level}] {time} {msg}"):
+    def __init__(self, json_encoder: json.JSONEncoder = JsonEncoder(), message_format: str = "[{level}] {timestamp} {msg}"):
         self.json_encoder = json_encoder
         self.message_format = message_format
         super(JsonFormatter, self).__init__()
@@ -103,10 +103,10 @@ class JsonFormatter(logging.Formatter):
             msg = message
 
         payload = {
-            "value": message,
+            "log_message": message,
             "args": getattr(record, "_message_kwargs", {}),
             "level": record.levelname,
-            "time": datetime.utcfromtimestamp(record.created).isoformat(),
+            "timestamp": datetime.utcfromtimestamp(record.created).isoformat(),
             "tags": self.format_tags(record),
         }
 
@@ -151,7 +151,7 @@ class Logger(logging.Logger):
         name: str,
         level: Union[str, int, None] = None,
         log_stream: Optional[IO[str]] = None,
-        message_format: str = "[{level}] {time} {msg}",
+        message_format: str = "[{level}] {timestamp} {msg}",
         propagate: bool = False,
     ) -> "Logger":
         if name in cls._cache:

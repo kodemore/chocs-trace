@@ -97,8 +97,8 @@ def say_hello(req: HttpRequest) -> HttpResponse:
 |---|:---:|---|
 | `{level}` | DEBUG | Log level name |
 | `{msg}` | Example message | Log message after interpolation |
-| `{value}` | Example {name} | Log message before interpolation |
-| `{time}` | 2022-03-07T20:06:23.453866 | Time of the logged message |
+| `{log_message}` | Example {name} | Log message before interpolation |
+| `{timestamp}` | 2022-03-07T20:06:23.453866 | Time of the logged message |
 | `{filename}` | example.py | Name of the python file where message was log |
 | `{funcName}` | example_function | Name of the function where message was log |
 | `{module}` | example_module | Name of the module where message was log |
