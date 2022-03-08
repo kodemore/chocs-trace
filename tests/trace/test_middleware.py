@@ -61,7 +61,7 @@ def test_can_support_urllib() -> None:
         http.urlopen = orig_urlopen
         assert response.data == "ok"
 
-        return HttpResponse("OK")
+        return HttpResponse("OK", headers={"content-type": "text/*"})
 
     # when
     response = app(HttpRequest(HttpMethod.GET, "/test"))
