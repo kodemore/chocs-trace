@@ -104,7 +104,7 @@ class TraceMiddleware(Middleware):
             "route": str(request.route.route),
             "id": request_id,
             "correlation_id": correlation_id,
-            "causation_id": causation_id
+            "causation_id": causation_id,
         }
 
         Logger.set_tag("request", request_tag)
@@ -112,6 +112,7 @@ class TraceMiddleware(Middleware):
         # Populate sentry tags
         if self._use_sentry:
             from sentry_sdk import set_tag
+
             set_tag("request", request_tag)
 
         # Automatically add extra headers to requests library

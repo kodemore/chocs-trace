@@ -122,8 +122,8 @@ class JsonFormatter(logging.Formatter):
 
 
 class Logger(logging.Logger):
-    _tags: Dict[str, str] = {}
-    _cache: Dict[str, 'Logger'] = {}
+    _tags: Dict[str, Union[str, List[str], Dict[str, Union[str, List[str], dict]]]] = {}
+    _cache: Dict[str, "Logger"] = {}
 
     @classmethod
     def set_tag(cls, key: str, value: Union[str, List[str], Dict[str, Union[str, List[str], dict]]]) -> None:
