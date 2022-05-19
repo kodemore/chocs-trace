@@ -86,13 +86,13 @@ class TraceMiddleware(Middleware):
     def handle(self, request: HttpRequest, next: MiddlewareHandler) -> HttpResponse:
 
         # Retrieve values from headers
-        request_id = str(request.headers.get("x-request-id", self.generate_id()))
+        request_id = str(self.generate_id())
         correlation_id = str(request.headers.get("x-correlation-id", request_id))
         causation_id = str(request.headers.get("x-causation-id", request_id))
 
         # Update headers when needed
-        if "x-request-id" not in request.headers:
-            request.headers["x-request-id"] = request_id
+        request.headers["x-request-id"] = request_id
+
         if "x-correlation-id" not in request.headers:
             request.headers["x-correlation-id"] = correlation_id
         if "x-causation-id" not in request.headers:
@@ -102,18 +102,21 @@ class TraceMiddleware(Middleware):
             "method": str(request.method),
             "path": str(request.path),
             "route": str(request.route.route),
-            "id": request_id,
-            "correlation_id": correlation_id,
-            "causation_id": causation_id,
         }
 
         Logger.set_tag("request", request_tag)
+        Logger.set_tag("x-request-id", request_id)
+        Logger.set_tag("x-correlation-id", correlation_id)
+        Logger.set_tag("x-causation-id", causation_id)
 
         # Populate sentry tags
         if self._use_sentry:
             from sentry_sdk import set_tag
 
             set_tag("request", request_tag)
+            set_tag("x-request-id", request_id)
+            set_tag("x-correlation-id", correlation_id)
+            set_tag("x-causation-id", causation_id)
 
         # Automatically add extra headers to requests library
         if self._use_http and self._http_strategy == HttpStrategy.REQUESTS:
@@ -134,7 +137,6 @@ class TraceMiddleware(Middleware):
                 if "headers" not in kwargs:
                     kwargs["headers"] = {}
 
-                kwargs["headers"]["x-request-id"] = self.generate_id()
                 kwargs["headers"]["x-causation-id"] = request_id
                 kwargs["headers"]["x-correlation-id"] = correlation_id
 
@@ -155,7 +157,6 @@ class TraceMiddleware(Middleware):
                 if not headers:
                     headers = {}
 
-                headers["x-request-id"] = self.generate_id()
                 headers["x-causation-id"] = request_id
                 headers["x-correlation-id"] = correlation_id
 
@@ -167,7 +168,5 @@ class TraceMiddleware(Middleware):
 
         response = next(request)
         response.headers.set("x-request-id", request_id)
-        response.headers.set("x-causation-id", causation_id)
-        response.headers.set("x-correlation-id", correlation_id)
 
         return response

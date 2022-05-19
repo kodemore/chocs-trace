@@ -19,7 +19,6 @@ def test_can_support_requests_lib() -> None:
 
         assert "x-correlation-id" in request.headers
         assert "x-causation-id" in request.headers
-        assert "x-request-id" in request.headers
 
         return "ok"
 
@@ -43,7 +42,6 @@ def urllib_support_mock(*args, **kwargs):
     headers = kwargs["headers"]
     assert "x-correlation-id" in headers
     assert "x-causation-id" in headers
-    assert "x-request-id" in headers
 
     return urllib3.HTTPResponse("ok")
 
@@ -80,10 +78,8 @@ def test_can_use_prefix_for_id() -> None:
 
         assert "x-correlation-id" in request.headers
         assert "x-causation-id" in request.headers
-        assert "x-request-id" in request.headers
         assert request.headers.get("x-correlation-id")[0:13] == "service-name-"
         assert request.headers.get("x-causation-id")[0:13] == "service-name-"
-        assert request.headers.get("x-request-id")[0:13] == "service-name-"
 
         return "ok"
 
