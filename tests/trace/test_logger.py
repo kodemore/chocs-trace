@@ -133,7 +133,7 @@ def test_can_log_a_dict() -> None:
     assert log["log_message"] == {"test": "ok"}
 
 
-def test_fail_log_a_dict_in_non_debug_level() -> None:
+def test_log_a_dict_in_non_debug_level_as_string() -> None:
     # given
     logger_stream = StringIO()
     logger = Logger.get("test_cannot_log_a_dict", log_stream=logger_stream)
@@ -147,8 +147,8 @@ def test_fail_log_a_dict_in_non_debug_level() -> None:
     json_payload = record[record.find('\t'):]
     log = json.loads(json_payload)
 
-    assert log["level"] == "ERROR"
-    assert log["log_message"] != {"test": "ok"}
+    assert log["level"] == "INFO"
+    assert log["log_message"] == str({"test": "ok"})
 
 
 def test_can_retrieve_same_logger_multiple_times() -> None:

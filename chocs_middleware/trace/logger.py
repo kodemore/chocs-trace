@@ -3,6 +3,7 @@ import logging
 import traceback
 from dataclasses import is_dataclass, asdict
 from datetime import date, datetime, time
+from decimal import Decimal
 from inspect import istraceback
 from typing import Dict, Optional, IO, Union, Any, List
 
@@ -74,13 +75,11 @@ class JsonFormatter(logging.Formatter):
 
     @staticmethod
     def get_message(record: logging.LogRecord) -> Any:
-        if isinstance(record.msg, str):
+        if isinstance(record.msg, (str, float, int, bool, Decimal, type(None))):
             return record.msg
 
         if record.levelname != "DEBUG":
-            msg = f"Dumping objects is prohibited at `{record.levelname}` log level."
-            record.levelname = "ERROR"
-            return msg
+            return str(record.msg)
 
         return record.msg
 
