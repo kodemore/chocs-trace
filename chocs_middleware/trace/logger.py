@@ -81,7 +81,7 @@ class JsonFormatter(logging.Formatter):
             return record.msg
 
         if record.levelname != "DEBUG":
-            return str(record.msg)
+            return repr(record.msg)
 
         return record.msg
 
