@@ -68,6 +68,8 @@ class JsonEncoder(json.JSONEncoder):
 
 
 class JsonFormatter(logging.Formatter):
+    ROOT_TAGS = ["x-request-id", "x-correlation-id", "x-causation-id"]
+
     def __init__(
         self, json_encoder: json.JSONEncoder = JsonEncoder(), message_format: str = "[{level}] {timestamp} {msg}"
     ):
@@ -108,8 +110,14 @@ class JsonFormatter(logging.Formatter):
             "args": getattr(record, "_message_kwargs", {}),
             "level": record.levelname,
             "timestamp": datetime.utcfromtimestamp(record.created).isoformat(),
-            "tags": self.format_tags(record),
+            "tags": {},
         }
+
+        for name, value in self.format_tags(record).items():
+            if name in self.ROOT_TAGS:
+                payload[name] = value
+            else:
+                payload["tags"][name] = value
 
         log = {}
         for key in LOG_RECORD_FIELDS:

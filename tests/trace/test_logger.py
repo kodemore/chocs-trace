@@ -107,13 +107,13 @@ def test_can_attach_tags() -> None:
         log = json.loads(json_payload)
 
         assert "tags" in log
-        assert "x-request-id" in log["tags"]
-        assert "x-causation-id" in log["tags"]
-        assert "x-correlation-id" in log["tags"]
+        assert "x-request-id" in log
+        assert "x-causation-id" in log
+        assert "x-correlation-id" in log
 
-        assert log["tags"]["x-request-id"] == "req-1"
-        assert log["tags"]["x-causation-id"] == "caus-2"
-        assert log["tags"]["x-correlation-id"] == "correl-3"
+        assert log["x-request-id"] == "req-1"
+        assert log["x-causation-id"] == "caus-2"
+        assert log["x-correlation-id"] == "correl-3"
 
 
 def test_can_log_a_dict() -> None:
