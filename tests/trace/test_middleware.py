@@ -36,6 +36,35 @@ def test_can_support_requests_lib() -> None:
     # then
     assert request_called
 
+def test_can_support_requests_lib_request_method() -> None:
+    # given
+    app = Application(TraceMiddleware())
+    request_called = False
+
+    @urlmatch(netloc=r"(.*\.)?test\.com$")
+    def requests_support_mock(url, request):
+        nonlocal request_called
+        request_called = True
+
+        assert "x-correlation-id" in request.headers
+        assert "x-causation-id" in request.headers
+
+        return "ok"
+
+    @app.get("/test")
+    def say_hello(req: HttpRequest) -> HttpResponse:
+        response = requests.request("GET", "http://test.com/", headers=req.headers)
+        assert response.content == b"ok"
+
+        return HttpResponse("OK")
+
+    # when
+    with HTTMock(requests_support_mock):
+        app(HttpRequest(HttpMethod.GET, "/test"))
+
+    # then
+    assert request_called
+
 
 def urllib_support_mock(*args, **kwargs):
 
