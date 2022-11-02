@@ -94,4 +94,3 @@ def test_can_use_prefix_for_id() -> None:
 
     # then
     assert response.headers.get("x-request-id")[0:13] == "service-name-"
-
