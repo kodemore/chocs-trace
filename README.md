@@ -57,6 +57,14 @@ def say_hello(req: HttpRequest) -> HttpResponse:
     requests.get("http://example.com/test")  # middleware will automatically attach x-correlation-id, x-causation-id and x-request-id headers to your request
     
     return HttpResponse("Hello!")
+
+# when using the requests.request method you will need to add headers for it to use, otherwise it will generate default headers and is unable to attach x-correlation-id, x-causation-id and x-request-id headers
+@app.get("/test")
+    def say_hello(req: HttpRequest, headers=req.headers) -> HttpResponse:
+        response = requests.request("GET", "http://test.com/")
+        assert response.content == b"ok"
+
+        return HttpResponse("OK")
 ```
 
 ## Using logger
