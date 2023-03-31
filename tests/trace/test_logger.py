@@ -48,10 +48,9 @@ def test_can_log_message() -> None:
     raw_logs = logger_stream.getvalue().split("\n")[:-1]
 
     for record in raw_logs:
-        json_payload = record[record.find('\t'):]
-        log = json.loads(json_payload)
+        log = json.loads(record)
 
-        assert "log_message" in log
+        assert "message" in log
         assert "args" in log
         assert "level" in log
         assert "timestamp" in log
@@ -71,10 +70,9 @@ def test_can_interpolate_message() -> None:
     # then
     raw_logs = logger_stream.getvalue().split("\n")[:-1]
     record = raw_logs[0]
-    json_payload = record[record.find('\t'):]
-    log = json.loads(json_payload)
+    log = json.loads(record)
 
-    assert log["log_message"] == "hello {name}"
+    assert log["message"] == "hello {name}"
     assert log["args"] == {"name": "test"}
     assert log["level"] == "INFO"
     assert "timestamp" in log
@@ -103,8 +101,7 @@ def test_can_attach_tags() -> None:
     raw_logs = logger_stream.getvalue().split("\n")[:-1]
 
     for record in raw_logs:
-        json_payload = record[record.find('\t'):]
-        log = json.loads(json_payload)
+        log = json.loads(record)
 
         assert "tags" in log
         assert "x-request-id" in log
@@ -127,11 +124,27 @@ def test_can_log_a_dict() -> None:
     # then
     raw_logs = logger_stream.getvalue().split("\n")[:-1]
     record = raw_logs[0]
-    json_payload = record[record.find('\t'):]
-    log = json.loads(json_payload)
+    log = json.loads(record)
 
-    assert log["log_message"] == {"test": "ok"}
+    assert log["message"] == {"test": "ok"}
 
+def test_can_log_with_a_prefix() -> None:
+    # given
+    logger_stream = StringIO()
+    logger = Logger.get("test_can_log_with_a_prefix", log_stream=logger_stream, use_prefix=True)
+
+    # when
+    item = {"test": "ok"}
+    logger.debug("Test log {item}", item=item)
+
+    # then
+    raw_logs = logger_stream.getvalue().split("\n")[:-1]
+    record = raw_logs[0]
+    string_prefix = record[:record.find('\t')]
+    json_payload = json.loads(record[record.find('\t'):])
+
+    assert "Test log {'test': 'ok'}" in string_prefix
+    assert json_payload["message"] == 'Test log {item}'
 
 def test_log_a_dict_in_non_debug_level_as_string() -> None:
     # given
@@ -144,11 +157,10 @@ def test_log_a_dict_in_non_debug_level_as_string() -> None:
     # then
     raw_logs = logger_stream.getvalue().split("\n")[:-1]
     record = raw_logs[0]
-    json_payload = record[record.find('\t'):]
-    log = json.loads(json_payload)
+    log = json.loads(record)
 
     assert log["level"] == "INFO"
-    assert log["log_message"] == str({"test": "ok"})
+    assert log["message"] == str({"test": "ok"})
 
 
 def test_can_retrieve_same_logger_multiple_times() -> None:

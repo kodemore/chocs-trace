@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "chocs_middleware.trace"
-version = "0.4.2"
+version = "0.4.3"
 description = "Http tracing middleware for chocs library."
 authors = ["Dawid Kraczkowski <dawid.kraczkowski@gmail.com>"]
 license = "MIT"
