@@ -71,10 +71,14 @@ class JsonFormatter(logging.Formatter):
     ROOT_TAGS = ["x-request-id", "x-correlation-id", "x-causation-id"]
 
     def __init__(
-        self, json_encoder: json.JSONEncoder = JsonEncoder(), message_format: str = "[{level}] {timestamp} {msg}"
+        self,
+        json_encoder: json.JSONEncoder = JsonEncoder(),
+        message_format: str = "[{level}] {timestamp} {msg}",
+        use_prefix: bool = False
     ):
         self.json_encoder = json_encoder
         self.message_format = message_format
+        self.use_prefix = use_prefix
         super(JsonFormatter, self).__init__()
 
     @staticmethod
@@ -106,7 +110,7 @@ class JsonFormatter(logging.Formatter):
             msg = message
 
         payload = {
-            "log_message": message,
+            "message": message,
             "args": getattr(record, "_message_kwargs", {}),
             "level": record.levelname,
             "timestamp": datetime.utcfromtimestamp(record.created).isoformat(),
@@ -127,7 +131,10 @@ class JsonFormatter(logging.Formatter):
 
         log = {**log, **payload, **{"msg": msg}}
 
-        return self.format_message(log) + "\t" + json.dumps(payload, cls=JsonEncoder, ensure_ascii=True)
+        if self.use_prefix:
+            return self.format_message(log) + "\t" + json.dumps(payload, cls=JsonEncoder, ensure_ascii=True)
+
+        return json.dumps(payload, cls=JsonEncoder, ensure_ascii=True)
 
 
 class Logger(logging.Logger):
@@ -162,6 +169,7 @@ class Logger(logging.Logger):
         log_stream: Optional[IO[str]] = None,
         message_format: str = "[{level}] {timestamp} {msg}",
         propagate: bool = False,
+        use_prefix: bool = False
     ) -> "Logger":
         if name in cls._cache:
             return cls._cache[name]
@@ -173,7 +181,7 @@ class Logger(logging.Logger):
             logger.handlers.clear()
 
         json_handler = logging.StreamHandler(log_stream)
-        json_handler.setFormatter(JsonFormatter(message_format=message_format))
+        json_handler.setFormatter(JsonFormatter(message_format=message_format, use_prefix=use_prefix))
         logger.addHandler(json_handler)
 
         logger.setLevel(level or logging.DEBUG)
